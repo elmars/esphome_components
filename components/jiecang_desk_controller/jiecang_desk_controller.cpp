@@ -198,6 +198,13 @@ namespace esphome {
             send_simple_command(0x07);
         }
 
+        // Returns true (and disarms) if "save position" was pressed within the last 10 s.
+        bool JiecangDeskController::take_save_position_mode() {
+            bool armed = save_position_mode && millis() - save_position_mode_since < 10000;
+            save_position_mode = false;
+            return armed;
+        }
+
         void JiecangDeskController::button_press_action(int action) {
             ESP_LOGV("JiecangDeskController", "button_press_action %i", action);
             switch (action) {
@@ -218,32 +225,28 @@ namespace esphome {
                     move_down();
                     break;
                 case BUTTON_POSITION1:
-                    if (save_position_mode) {
-                        save_position_mode = false;
+                    if (take_save_position_mode()) {
                         save_position(1);
                         return;
                     }
                     goto_position(1);
                     break;
                 case BUTTON_POSITION2:
-                    if (save_position_mode) {
-                        save_position_mode = false;
+                    if (take_save_position_mode()) {
                         save_position(2);
                         return;
                     }
                     goto_position(2);
                     break;
                 case BUTTON_POSITION3:
-                    if (save_position_mode) {
-                        save_position_mode = false;
+                    if (take_save_position_mode()) {
                         save_position(3);
                         return;
                     }
                     goto_position(3);
                     break;
                 case BUTTON_POSITION4:
-                    if (save_position_mode) {
-                        save_position_mode = false;
+                    if (take_save_position_mode()) {
                         save_position(4);
                         return;
                     }
@@ -251,6 +254,7 @@ namespace esphome {
                     break;
                 case BUTTON_SAVE_POSITION:
                     save_position_mode = true;
+                    save_position_mode_since = millis();
                     break;
             }
         }

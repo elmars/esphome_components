@@ -38,6 +38,8 @@ namespace esphome {
                 float physical_max = 0;
 
                 bool save_position_mode = false;
+                uint32_t save_position_mode_since = 0;
+                bool take_save_position_mode();
 
                 float byte2float(int high, int low);
                 protocol::FrameParser parser_;
