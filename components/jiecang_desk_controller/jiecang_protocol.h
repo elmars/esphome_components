@@ -7,6 +7,7 @@
 //   start = 0xF1 (to the desk) / 0xF2 (from the desk)
 //   checksum = (cmd + len + sum(data)) mod 256
 
+#include <cmath>
 #include <cstdint>
 #include <initializer_list>
 #include <vector>
@@ -34,7 +35,7 @@ inline std::vector<uint8_t> build_command(uint8_t cmd, std::initializer_list<uin
 }
 
 inline std::vector<uint8_t> build_goto_height(float height_cm) {
-  const uint16_t mm = static_cast<uint16_t>(static_cast<int>(height_cm) * 10);
+  const uint16_t mm = static_cast<uint16_t>(std::lround(height_cm * 10.0f));
   return build_command(0x1B, {static_cast<uint8_t>(mm >> 8), static_cast<uint8_t>(mm & 0xFF)});
 }
 

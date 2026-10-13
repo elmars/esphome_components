@@ -19,8 +19,10 @@ static void test_build_goto_height() {
   // Doku: 1000 mm = f1 f1 1b 2 3 e8 8 7e, 900 mm = f1 f1 1b 2 3 84 a4 7e
   assert((build_goto_height(100.0f) == Bytes{0xF1, 0xF1, 0x1B, 0x02, 0x03, 0xE8, 0x08, 0x7E}));
   assert((build_goto_height(90.0f) == Bytes{0xF1, 0xF1, 0x1B, 0x02, 0x03, 0x84, 0xA4, 0x7E}));
-  // Ist-Stand (Befund 6): Nachkommastellen werden abgeschnitten, 72,5 cm -> 720 mm
-  assert((build_goto_height(72.5f) == Bytes{0xF1, 0xF1, 0x1B, 0x02, 0x02, 0xD0, 0xEF, 0x7E}));
+  // 72,5 cm -> 725 mm = 02 D5, Summe 1B+02+02+D5 = F4
+  assert((build_goto_height(72.5f) == Bytes{0xF1, 0xF1, 0x1B, 0x02, 0x02, 0xD5, 0xF4, 0x7E}));
+  // Float-Ungenauigkeit: 100,04 cm -> 1000 mm
+  assert((build_goto_height(100.04f) == build_goto_height(100.0f)));
 }
 
 static void test_decode_height() {
