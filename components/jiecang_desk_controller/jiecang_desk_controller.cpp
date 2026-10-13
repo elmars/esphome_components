@@ -132,7 +132,7 @@ namespace esphome {
             }
         }
 
-        void JiecangDeskController::update() {
+        void JiecangDeskController::loop() {
             const int max_length = 10;
             static unsigned int buffer[max_length];
             while (available()) {
