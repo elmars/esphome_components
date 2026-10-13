@@ -25,9 +25,9 @@ namespace esphome {
                     if (height != nullptr) height->publish_state(current_height);
                     if (number_height != nullptr) number_height->publish_state(current_height);
 
-                    if (height_pct != nullptr && limit_max != 0)
+                    if (height_pct != nullptr && limits_known())
                         height_pct->publish_state((current_height - limit_min) / (limit_max - limit_min) * 100);
-                    if (number_height_pct != nullptr && limit_max != 0)
+                    if (number_height_pct != nullptr && limits_known())
                         number_height_pct->publish_state(roundf((current_height - limit_min) / (limit_max - limit_min) * 1000)/10);
                     break;
                 }
@@ -105,7 +105,7 @@ namespace esphome {
         }
 
         void JiecangDeskController::send_frame(const std::vector<uint8_t> &frame) {
-            if (protocol::needs_wakeup(millis(), this->last_message_time)) {
+            if (this->last_message_time == 0 || protocol::needs_wakeup(millis(), this->last_message_time)) {
                 ESP_LOGV(TAG, "Sending wake-up bytes.");
                 write_array(protocol::wakeup_bytes());
             }
@@ -283,7 +283,7 @@ namespace esphome {
                     goto_height(value);
                     break;
                 case NUMBER_HEIGHT_PCT:
-                    if (limit_max != 0) goto_height((limit_max - limit_min) * value / 100 + limit_min);
+                    if (limits_known()) goto_height((limit_max - limit_min) * value / 100 + limit_min);
                     break;
             }
         }
