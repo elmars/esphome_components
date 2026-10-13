@@ -1,0 +1,47 @@
+esphome:
+  name: ci-jiecang-esp32c3
+
+esp32:
+  board: esp32-c3-devkitm-1
+  framework:
+    type: esp-idf
+
+logger:
+  hardware_uart: USB_SERIAL_JTAG
+
+external_components:
+  - source:
+      type: local
+      path: ../components
+    components: [jiecang_desk_controller]
+
+uart:
+  tx_pin: GPIO21
+  rx_pin: GPIO20
+  baud_rate: 9600
+
+jiecang_desk_controller:
+  id: my_desk
+  sensors:
+    height: {name: "Height"}
+    height_min: {name: "Height Min"}
+    height_max: {name: "Height Max"}
+    height_pct: {name: "Height Percent"}
+    position1: {name: "Position 1"}
+    position2: {name: "Position 2"}
+    position3: {name: "Position 3"}
+    position4: {name: "Position 4"}
+  buttons:
+    step_up: {name: "Step up"}
+    step_down: {name: "Step down"}
+    stop: {name: "Stop"}
+    move_up: {name: "Move up"}
+    move_down: {name: "Move down"}
+    position1: {name: "Position 1"}
+    position2: {name: "Position 2"}
+    position3: {name: "Position 3"}
+    position4: {name: "Position 4"}
+    save_position: {name: "Save Position"}
+  numbers:
+    height: {name: "Height"}
+    height_pct: {name: "Height Percent"}

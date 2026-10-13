@@ -1,5 +1,6 @@
 #include "jiecang_desk_controller.h"
 #include "esphome/core/log.h"
+#include "jiecang_protocol.h"
 
 namespace esphome {
     namespace jiecang_desk_controller {
@@ -7,7 +8,7 @@ namespace esphome {
         static const char *const TAG = "jiecang_desk_controller";
 
         float JiecangDeskController::byte2float(int high, int low) {
-            return static_cast<float>((high<<8) + low)/10;
+            return protocol::decode_height_cm(high, low);
         }
 
         bool JiecangDeskController::bufferMessage(int data, unsigned int *buffer, int len) {
@@ -154,7 +155,7 @@ namespace esphome {
         }
 
         void JiecangDeskController::write_command(unsigned char cmd) {
-            write_array({ 0xF1, 0xF1, cmd, 0x00, cmd, 0x7E });
+            write_array(protocol::build_command(cmd));
         }
 
         void JiecangDeskController::add_button(button::Button *btn, int action) {
@@ -208,13 +209,7 @@ namespace esphome {
         }
 
         void JiecangDeskController::goto_height(float height) {
-            unsigned char cmd = 0x1B;
-            unsigned char high_byte = ((int) height * 10) >> 8;
-            unsigned char low_byte = ((int) height * 10) & 0xFF;
-
-            unsigned char checksum = cmd + 2 + high_byte + low_byte;
-
-            write_array({ 0xF1, 0xF1, cmd, 0x02, high_byte, low_byte, checksum, 0x7E });
+            write_array(protocol::build_goto_height(height));
         }
 
         void JiecangDeskController::move_up() {

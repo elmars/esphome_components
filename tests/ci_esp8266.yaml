@@ -1,0 +1,45 @@
+esphome:
+  name: ci-jiecang-esp8266
+
+esp8266:
+  board: d1_mini
+
+logger:
+  baud_rate: 0
+
+external_components:
+  - source:
+      type: local
+      path: ../components
+    components: [jiecang_desk_controller]
+
+uart:
+  tx_pin: TX
+  rx_pin: RX
+  baud_rate: 9600
+
+jiecang_desk_controller:
+  id: my_desk
+  sensors:
+    height: {name: "Height"}
+    height_min: {name: "Height Min"}
+    height_max: {name: "Height Max"}
+    height_pct: {name: "Height Percent"}
+    position1: {name: "Position 1"}
+    position2: {name: "Position 2"}
+    position3: {name: "Position 3"}
+    position4: {name: "Position 4"}
+  buttons:
+    step_up: {name: "Step up"}
+    step_down: {name: "Step down"}
+    stop: {name: "Stop"}
+    move_up: {name: "Move up"}
+    move_down: {name: "Move down"}
+    position1: {name: "Position 1"}
+    position2: {name: "Position 2"}
+    position3: {name: "Position 3"}
+    position4: {name: "Position 4"}
+    save_position: {name: "Save Position"}
+  numbers:
+    height: {name: "Height"}
+    height_pct: {name: "Height Percent"}
