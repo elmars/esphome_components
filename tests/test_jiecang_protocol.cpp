@@ -106,6 +106,13 @@ static void test_parser_zero_length_frame() {
   assert(f.size() == 1 && f[0].cmd == 0x04 && f[0].len == 0);
 }
 
+static void test_needs_wakeup() {
+  assert(needs_wakeup(5000, 0));
+  assert(!needs_wakeup(4999, 0));
+  assert(!needs_wakeup(0x00000100, 0xFFFFF000));  // millis() overflow: 4352 ms elapsed
+  assert((wakeup_bytes() == Bytes{0, 0, 0, 0, 0, 0}));
+}
+
 int main() {
   test_build_command();
   test_build_goto_height();
@@ -118,6 +125,7 @@ int main() {
   test_parser_oversized_length_dropped();
   test_parser_truncated_frame_no_bogus_output();
   test_parser_zero_length_frame();
+  test_needs_wakeup();
   std::puts("all protocol tests passed");
   return 0;
 }

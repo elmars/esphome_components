@@ -43,6 +43,15 @@ inline float decode_height_cm(uint8_t high, uint8_t low) {
   return static_cast<float>((high << 8) | low) / 10.0f;
 }
 
+// The box ignores the first bytes after ~10 s of silence. We wake it up after 5 s.
+static const uint32_t WAKEUP_AFTER_MS = 5000;
+
+inline bool needs_wakeup(uint32_t now_ms, uint32_t last_rx_ms) {
+  return now_ms - last_rx_ms >= WAKEUP_AFTER_MS;  // unsigned: survives millis() overflow
+}
+
+inline std::vector<uint8_t> wakeup_bytes() { return std::vector<uint8_t>(6, 0x00); }
+
 static const uint8_t MAX_DATA = 8;
 
 struct Frame {

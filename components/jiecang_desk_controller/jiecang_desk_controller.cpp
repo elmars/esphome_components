@@ -97,19 +97,16 @@ namespace esphome {
             }
         }
 
-        void JiecangDeskController::send_simple_command(unsigned char cmd) {
-            // If more than 5 seconds passed since last message, assume desk is asleep
-            if (millis() - this->last_message_time >= 5000) {
-                ESP_LOGV(TAG, "Sending wake-up signal.");
-                write_command(0x2B);  // send STOP to wake up
-                delay(100);  // brief delay to allow the desk to wake up
+        void JiecangDeskController::send_frame(const std::vector<uint8_t> &frame) {
+            if (protocol::needs_wakeup(millis(), this->last_message_time)) {
+                ESP_LOGV(TAG, "Sending wake-up bytes.");
+                write_array(protocol::wakeup_bytes());
             }
-
-            write_command(cmd);
+            write_array(frame);
         }
 
-        void JiecangDeskController::write_command(unsigned char cmd) {
-            write_array(protocol::build_command(cmd));
+        void JiecangDeskController::send_simple_command(unsigned char cmd) {
+            send_frame(protocol::build_command(cmd));
         }
 
         void JiecangDeskController::add_button(button::Button *btn, int action) {
@@ -163,7 +160,7 @@ namespace esphome {
         }
 
         void JiecangDeskController::goto_height(float height) {
-            write_array(protocol::build_goto_height(height));
+            send_frame(protocol::build_goto_height(height));
         }
 
         void JiecangDeskController::move_up() {

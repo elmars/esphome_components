@@ -41,7 +41,7 @@ namespace esphome {
                 float byte2float(int high, int low);
                 protocol::FrameParser parser_;
                 void handle_frame(const protocol::Frame &f);
-                void write_command(unsigned char cmd);
+                void send_frame(const std::vector<uint8_t> &frame);
 
             public:
                 void update() override;
