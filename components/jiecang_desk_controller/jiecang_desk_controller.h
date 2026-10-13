@@ -33,6 +33,7 @@ namespace esphome {
                 float current_height = 0;
                 float limit_min = 0;
                 float limit_max = 0;
+                uint32_t last_limits_request = 0;
                 float physical_min = 0;
                 float physical_max = 0;
 
@@ -45,6 +46,7 @@ namespace esphome {
 
             public:
                 void update() override;
+                bool limits_known() const { return limit_min > 0 && limit_max > limit_min; }
 
                 void set_sensor_height(sensor::Sensor *sensor) { this->height = sensor; }
                 void set_sensor_height_min(sensor::Sensor *sensor) { this->height_min = sensor; }

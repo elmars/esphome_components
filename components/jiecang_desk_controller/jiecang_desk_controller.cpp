@@ -95,6 +95,13 @@ namespace esphome {
                     handle_frame(parser_.frame());
                 }
             }
+            // Retry until the box has reported its limits (e.g. boot race after a power cut).
+            if (!limits_known() && millis() - last_limits_request >= 5000) {
+                last_limits_request = millis();
+                ESP_LOGD(TAG, "Requesting limits");
+                request_physical_limits();
+                request_limits();
+            }
         }
 
         void JiecangDeskController::send_frame(const std::vector<uint8_t> &frame) {
@@ -164,10 +171,18 @@ namespace esphome {
         }
 
         void JiecangDeskController::move_up() {
+            if (!limits_known()) {
+                ESP_LOGW(TAG, "Limits unknown, ignoring move_up");
+                return;
+            }
             goto_height(limit_max);
         }
 
         void JiecangDeskController::move_down() {
+            if (!limits_known()) {
+                ESP_LOGW(TAG, "Limits unknown, ignoring move_down");
+                return;
+            }
             goto_height(limit_min);
         }
 
