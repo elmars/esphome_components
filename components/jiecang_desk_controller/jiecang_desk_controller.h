@@ -27,7 +27,7 @@
 namespace esphome {
     namespace jiecang_desk_controller {
 
-        class JiecangDeskController : public PollingComponent, public sensor::Sensor, public uart::UARTDevice {
+        class JiecangDeskController : public Component, public sensor::Sensor, public uart::UARTDevice {
             private:
                 uint32_t last_message_time = 0;
                 float current_height = 0;
@@ -47,7 +47,7 @@ namespace esphome {
                 void send_frame(const std::vector<uint8_t> &frame);
 
             public:
-                void update() override;
+                void loop() override;
                 bool limits_known() const { return limit_min > 0 && limit_max > limit_min; }
 
                 void set_sensor_height(sensor::Sensor *sensor) { this->height = sensor; }

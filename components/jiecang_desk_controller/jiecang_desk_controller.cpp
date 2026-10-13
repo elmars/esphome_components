@@ -89,7 +89,7 @@ namespace esphome {
             }
         }
 
-        void JiecangDeskController::update() {
+        void JiecangDeskController::loop() {
             while (available()) {
                 if (parser_.feed(static_cast<uint8_t>(read()))) {
                     handle_frame(parser_.frame());
