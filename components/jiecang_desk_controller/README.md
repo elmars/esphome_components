@@ -65,15 +65,11 @@ TX  | RX
 esphome:
   ...
   on_boot:
-    # This script is required to initialize the following sensors:
-    #    height_pct, height_min, height_max, position1 - position4
-    # You can skip this if you don't use those.
+    # Height limits are fetched automatically (retried every 5 s until the desk answers).
+    # Only the memory positions need an explicit request; skip this if you don't use
+    # the position1 - position4 sensors.
     priority: 0 # when mostly everything else is done
     then:
-      - lambda: "id(my_desk).request_physical_limits();"
-      - delay: 0.1s
-      - lambda: "id(my_desk).request_limits();"
-      - delay: 0.1s
       - lambda: "id(my_desk).request_settings();"
 
 external_components:
@@ -151,14 +147,14 @@ button        | description
 --------------|---------------------------
 step_up       | move up desk by one step (~14mm)
 step_down     | move down desk by one step (~14mm)
-move_up       | move up until stopped
-move_down     | move down until stopped
+move_up       | move up until stopped (does nothing until the desk reported its height limits)
+move_down     | move down until stopped (does nothing until the desk reported its height limits)
 stop          | stop movement of desk
 position1     | move to 1st stored height
 position2     | move to 2nd stored height
 position3     | move to 3rd stored height
 position4     | move to 4th stored height
-save_position | press position button afterwards to store current height to that position
+save_position | press a position button within 10 s to store current height to that position (the mode expires afterwards)
 
 #### lambda methods
 

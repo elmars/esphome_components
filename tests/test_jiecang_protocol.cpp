@@ -1,4 +1,4 @@
-// Host-Tests für jiecang_protocol.h (ohne ESPHome).
+// Host tests for jiecang_protocol.h (no ESPHome needed).
 // Build: g++ -std=c++17 -Wall -Wextra -Werror -I components/jiecang_desk_controller -o test_protocol tests/test_jiecang_protocol.cpp && ./test_protocol
 #include <cassert>
 #include <cstdio>
@@ -9,19 +9,19 @@ using namespace esphome::jiecang_desk_controller::protocol;
 using Bytes = std::vector<uint8_t>;
 
 static void test_build_command() {
-  // Doku: Move table up = F1 F1 01 00 01 7E
+  // Vendor docs: move table up = F1 F1 01 00 01 7E
   assert((build_command(0x01) == Bytes{0xF1, 0xF1, 0x01, 0x00, 0x01, 0x7E}));
-  // Doku: Lock status abfragen = F1 F1 1F 01 00 20 7E
+  // Vendor docs: query lock status = F1 F1 1F 01 00 20 7E
   assert((build_command(0x1F, {0x00}) == Bytes{0xF1, 0xF1, 0x1F, 0x01, 0x00, 0x20, 0x7E}));
 }
 
 static void test_build_goto_height() {
-  // Doku: 1000 mm = f1 f1 1b 2 3 e8 8 7e, 900 mm = f1 f1 1b 2 3 84 a4 7e
+  // Vendor docs: 1000 mm = f1 f1 1b 2 3 e8 8 7e, 900 mm = f1 f1 1b 2 3 84 a4 7e
   assert((build_goto_height(100.0f) == Bytes{0xF1, 0xF1, 0x1B, 0x02, 0x03, 0xE8, 0x08, 0x7E}));
   assert((build_goto_height(90.0f) == Bytes{0xF1, 0xF1, 0x1B, 0x02, 0x03, 0x84, 0xA4, 0x7E}));
-  // 72,5 cm -> 725 mm = 02 D5, Summe 1B+02+02+D5 = F4
+  // 72.5 cm -> 725 mm = 02 D5, sum 1B+02+02+D5 = F4
   assert((build_goto_height(72.5f) == Bytes{0xF1, 0xF1, 0x1B, 0x02, 0x02, 0xD5, 0xF4, 0x7E}));
-  // Float-Ungenauigkeit: 100,04 cm -> 1000 mm
+  // Float inaccuracy: 100.04 cm -> 1000 mm
   assert((build_goto_height(100.04f) == build_goto_height(100.0f)));
 }
 
@@ -45,14 +45,14 @@ static Bytes height_frame(uint16_t mm) {
 }
 
 static void test_parser_doc_example() {
-  // Doku S. 7: F2 F2 01 02 03 E8 EE 7E
+  // Vendor docs example: F2 F2 01 02 03 E8 EE 7E
   auto f = parse({0xF2, 0xF2, 0x01, 0x02, 0x03, 0xE8, 0xEE, 0x7E});
   assert(f.size() == 1);
   assert(f[0].cmd == 0x01 && f[0].len == 2 && f[0].data[0] == 0x03 && f[0].data[1] == 0xE8);
 }
 
 static void test_parser_0x7e_in_payload() {
-  // Befund 1: 638 / 894 / 1150 mm haben 0x7E als Low-Byte
+  // 638 / 894 / 1150 mm have 0x7E as low byte
   for (uint16_t mm : {638, 894, 1150}) {
     auto f = parse(height_frame(mm));
     assert(f.size() == 1);
@@ -68,7 +68,7 @@ static void test_parser_checksum_is_0x7e() {
 }
 
 static void test_parser_rejects_bad_checksum_and_resyncs() {
-  Bytes bytes = {0xF2, 0xF2, 0x01, 0x03, 0x03, 0xE8, 0x00, 0x00, 0x7E};  // falsche Summe
+  Bytes bytes = {0xF2, 0xF2, 0x01, 0x03, 0x03, 0xE8, 0x00, 0x00, 0x7E};  // wrong checksum
   Bytes good = height_frame(1000);
   bytes.insert(bytes.end(), good.begin(), good.end());
   auto f = parse(bytes);
@@ -91,8 +91,8 @@ static void test_parser_oversized_length_dropped() {
 }
 
 static void test_parser_truncated_frame_no_bogus_output() {
-  // Abgeschnittener Frame, danach zwei gültige. Höchstens der erste gültige darf verloren gehen,
-  // ein falscher Frame darf nie herauskommen.
+  // Truncated frame followed by two valid ones. At most the first valid one may be lost,
+  // a bogus frame must never come out.
   Bytes bytes = {0xF2, 0xF2, 0x01, 0x03, 0x03};
   for (int i = 0; i < 2; i++) {
     Bytes good = height_frame(1000);
@@ -104,7 +104,7 @@ static void test_parser_truncated_frame_no_bogus_output() {
 }
 
 static void test_parser_zero_length_frame() {
-  auto f = parse({0xF2, 0xF2, 0x04, 0x00, 0x04, 0x7E});  // RESET-Info
+  auto f = parse({0xF2, 0xF2, 0x04, 0x00, 0x04, 0x7E});  // RESET info
   assert(f.size() == 1 && f[0].cmd == 0x04 && f[0].len == 0);
 }
 

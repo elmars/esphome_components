@@ -98,7 +98,7 @@ namespace esphome {
             // Retry until the box has reported its limits (e.g. boot race after a power cut).
             if (!limits_known() && millis() - last_limits_request >= 5000) {
                 last_limits_request = millis();
-                ESP_LOGD(TAG, "Requesting limits");
+                ESP_LOGV(TAG, "Requesting limits");
                 request_physical_limits();
                 request_limits();
             }
