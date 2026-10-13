@@ -11,53 +11,15 @@ namespace esphome {
             return protocol::decode_height_cm(high, low);
         }
 
-        bool JiecangDeskController::bufferMessage(int data, unsigned int *buffer, int len) {
-            // This is a very simple method of receiving messages from the desk.
-            // It will fail on messages that contain the value 0x7E in their payload.
-            // But it is super simple and works for the messages we care about.
-
-            // format: 0xF2 0xF2 [command] [param_count] [[param] ...] [checksum] 0x7E
-            // checksum: sum of [command], [param_count] and all [param]s
-
-            static int cmd_incoming = 0; // 0: wait for F2, 1: wait for 2nd F2, 2: buffer data
-            static int pos = 0;
-
-            if (cmd_incoming < 2 && data == 0xF2) { // start of message, must appear twice
-                cmd_incoming++;
-                pos = 0;
-
-            } else if (cmd_incoming == 1) { // no second F2 received
-                cmd_incoming = 0;
-
-            } else if (cmd_incoming == 2) {
-                if (data == 0x7E) { // end of message
-                    cmd_incoming = 0;
-                    for (;pos<len-1;pos++) { // fill rest of buffer with zeros
-                        buffer[pos]=0;
-                    }
-                    return true;
-
-                } else if (pos >= len) { // message too long, drop it
-                    cmd_incoming = 0;
-
-                } else {
-                    buffer[pos++] = data; // buffer data
-                }
-
-            } // else: received garbage
-
-            return false;
-        }
-
-        void JiecangDeskController::handleMessage(unsigned int *message) {
-            // ESP_LOGV("jiecang_desk_controller", "message %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X", message[0], message[1], message[2], message[3], message[4], message[5], message[6], message[7], message[8], message[9]);
+        void JiecangDeskController::handle_frame(const protocol::Frame &f) {
             this->last_message_time = millis();
+            const uint8_t *d = f.data;
 
-            switch (message[0]) {
-                case 0x01:
-                    ESP_LOGV("jiecang_desk_controller", "height 0x%02X%02X", message[2], message[3]);
-                    float new_height;
-                    new_height = byte2float(message[2], message[3]);
+            switch (f.cmd) {
+                case 0x01: {
+                    if (f.len < 2) return;
+                    ESP_LOGV(TAG, "height 0x%02X%02X", d[0], d[1]);
+                    float new_height = byte2float(d[0], d[1]);
                     if (new_height == current_height) return;
                     current_height = new_height;
                     if (height != nullptr) height->publish_state(current_height);
@@ -68,20 +30,22 @@ namespace esphome {
                     if (number_height_pct != nullptr && limit_max != 0)
                         number_height_pct->publish_state(roundf((current_height - limit_min) / (limit_max - limit_min) * 1000)/10);
                     break;
+                }
 
                 case 0x1B:
-                    ESP_LOGV("jiecang_desk_controller", "target_height 0x%02X%02X = %f", message[2], message[3], byte2float(message[2], message[3]));
+                    if (f.len < 2) return;
+                    ESP_LOGV(TAG, "target_height 0x%02X%02X = %f", d[0], d[1], byte2float(d[0], d[1]));
                     break;
 
                 case 0x20:
-                    ESP_LOGV("jiecang_desk_controller", "limits 0x%02X  max %i min %i", message[2], (message[2] & 1), (message[2]>>4));
-
-                    if ((message[2] & 1) == 0) { // low nibble 0 -> no max limit, use physical_max
+                    if (f.len < 1) return;
+                    ESP_LOGV(TAG, "limits 0x%02X  max %i min %i", d[0], (d[0] & 1), (d[0] >> 4));
+                    if ((d[0] & 1) == 0) { // low nibble 0 -> no max limit, use physical_max
                         limit_max = physical_max;
                         if (height_max != nullptr) height_max->publish_state(limit_max);
                         if (number_height != nullptr) number_height->set_max_value(limit_max);
                     }
-                    if ((message[2]>>4) == 0) { // high nibble 0 -> no min limit, use physical_min
+                    if ((d[0] >> 4) == 0) { // high nibble 0 -> no min limit, use physical_min
                         limit_min = physical_min;
                         if (height_min != nullptr) height_min->publish_state(limit_min);
                         if (number_height != nullptr) number_height->set_min_value(limit_min);
@@ -89,56 +53,46 @@ namespace esphome {
                     break;
 
                 case 0x07:
-                    ESP_LOGV("jiecang_desk_controller", "physical limits 0x%02X%02X 0x%02X%02X", message[2], message[3], message[4], message[5]);
-                    physical_max = byte2float(message[2], message[3]);
-                    physical_min = byte2float(message[4], message[5]);
+                    if (f.len < 4) return;
+                    ESP_LOGV(TAG, "physical limits 0x%02X%02X 0x%02X%02X", d[0], d[1], d[2], d[3]);
+                    physical_max = byte2float(d[0], d[1]);
+                    physical_min = byte2float(d[2], d[3]);
                     break;
 
                 case 0x21:
-                    ESP_LOGV("jiecang_desk_controller", "height_max 0x%02X%02X", message[2], message[3]);
-                    limit_max = byte2float(message[2], message[3]);
+                    if (f.len < 2) return;
+                    ESP_LOGV(TAG, "height_max 0x%02X%02X", d[0], d[1]);
+                    limit_max = byte2float(d[0], d[1]);
                     if (height_max != nullptr) height_max->publish_state(limit_max);
                     if (number_height != nullptr) number_height->set_max_value(limit_max);
                     break;
 
                 case 0x22:
-                    ESP_LOGV("jiecang_desk_controller", "height_min 0x%02X%02X", message[2], message[3]);
-                    limit_min = byte2float(message[2], message[3]);
+                    if (f.len < 2) return;
+                    ESP_LOGV(TAG, "height_min 0x%02X%02X", d[0], d[1]);
+                    limit_min = byte2float(d[0], d[1]);
                     if (height_min != nullptr) height_min->publish_state(limit_min);
                     if (number_height != nullptr) number_height->set_min_value(limit_min);
                     break;
 
-                case 0x25:
-                    ESP_LOGV("jiecang_desk_controller", "position1 0x%02X%02X", message[2], message[3]);
-                    if (position1 != nullptr) position1->publish_state(byte2float(message[2], message[3]));
+                case 0x25: case 0x26: case 0x27: case 0x28: {
+                    if (f.len < 2) return;
+                    Sensor *positions[] = {position1, position2, position3, position4};
+                    Sensor *pos = positions[f.cmd - 0x25];
+                    ESP_LOGV(TAG, "position%d 0x%02X%02X", f.cmd - 0x24, d[0], d[1]);
+                    if (pos != nullptr) pos->publish_state(byte2float(d[0], d[1]));
                     break;
-
-                case 0x26:
-                    ESP_LOGV("jiecang_desk_controller", "position2 0x%02X%02X", message[2], message[3]);
-                    if (position2 != nullptr) position2->publish_state(byte2float(message[2], message[3]));
-                    break;
-
-                case 0x27:
-                    ESP_LOGV("jiecang_desk_controller", "position3 0x%02X%02X", message[2], message[3]);
-                    if (position3 != nullptr) position3->publish_state(byte2float(message[2], message[3]));
-                    break;
-
-                case 0x28:
-                    ESP_LOGV("jiecang_desk_controller", "position4 0x%02X%02X", message[2], message[3]);
-                    if (position4 != nullptr) position4->publish_state(byte2float(message[2], message[3]));
-                    break;
+                }
 
                 default:
-                    ESP_LOGV("jiecang_desk_controller", "unknown message %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X", message[0], message[1], message[2], message[3], message[4], message[5], message[6], message[7], message[8], message[9]);
+                    ESP_LOGV(TAG, "unknown message cmd 0x%02X len %u", f.cmd, f.len);
             }
         }
 
         void JiecangDeskController::update() {
-            const int max_length = 10;
-            static unsigned int buffer[max_length];
             while (available()) {
-                if(bufferMessage(read(), buffer, max_length)) {
-                    handleMessage(buffer);
+                if (parser_.feed(static_cast<uint8_t>(read()))) {
+                    handle_frame(parser_.frame());
                 }
             }
         }

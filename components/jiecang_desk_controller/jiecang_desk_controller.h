@@ -8,6 +8,7 @@
 #include "esphome/core/hal.h"
 #include "esphome/core/log.h"
 #include "jiecang_desk_number.h"
+#include "jiecang_protocol.h"
 
 #define BUTTON_STEP_UP 0
 #define BUTTON_STEP_DOWN 1
@@ -38,8 +39,8 @@ namespace esphome {
                 bool save_position_mode = false;
 
                 float byte2float(int high, int low);
-                bool bufferMessage(int data, unsigned int *buffer, int len);
-                void handleMessage(unsigned int *message);
+                protocol::FrameParser parser_;
+                void handle_frame(const protocol::Frame &f);
                 void write_command(unsigned char cmd);
 
             public:

@@ -43,6 +43,72 @@ inline float decode_height_cm(uint8_t high, uint8_t low) {
   return static_cast<float>((high << 8) | low) / 10.0f;
 }
 
+static const uint8_t MAX_DATA = 8;
+
+struct Frame {
+  uint8_t cmd{0};
+  uint8_t len{0};
+  uint8_t data[MAX_DATA]{};
+};
+
+// Byte-wise parser for frames from the desk. Uses the length field, so 0x7E inside
+// data or checksum is fine. Frames with a bad checksum, a missing end byte or
+// len > MAX_DATA are dropped.
+class FrameParser {
+ public:
+  // Returns true when a complete, valid frame is available via frame().
+  bool feed(uint8_t b) {
+    switch (state_) {
+      case WAIT_START1:
+        if (b == START_RX) state_ = WAIT_START2;
+        break;
+      case WAIT_START2:
+        state_ = (b == START_RX) ? WAIT_CMD : WAIT_START1;
+        break;
+      case WAIT_CMD:
+        if (b == START_RX) break;  // tolerate extra start bytes
+        frame_ = Frame{};
+        frame_.cmd = b;
+        state_ = WAIT_LEN;
+        break;
+      case WAIT_LEN:
+        if (b > MAX_DATA) {
+          state_ = WAIT_START1;
+          break;
+        }
+        frame_.len = b;
+        pos_ = 0;
+        state_ = (b == 0) ? WAIT_SUM : WAIT_DATA;
+        break;
+      case WAIT_DATA:
+        frame_.data[pos_++] = b;
+        if (pos_ == frame_.len) state_ = WAIT_SUM;
+        break;
+      case WAIT_SUM:
+        sum_ = b;
+        state_ = WAIT_END;
+        break;
+      case WAIT_END:
+        if (b == END && sum_ == checksum(frame_.cmd, frame_.len, frame_.data)) {
+          state_ = WAIT_START1;
+          return true;
+        }
+        state_ = (b == START_RX) ? WAIT_START2 : WAIT_START1;
+        break;
+    }
+    return false;
+  }
+
+  const Frame &frame() const { return frame_; }
+
+ private:
+  enum State : uint8_t { WAIT_START1, WAIT_START2, WAIT_CMD, WAIT_LEN, WAIT_DATA, WAIT_SUM, WAIT_END };
+  State state_{WAIT_START1};
+  Frame frame_{};
+  uint8_t pos_{0};
+  uint8_t sum_{0};
+};
+
 }  // namespace protocol
 }  // namespace jiecang_desk_controller
 }  // namespace esphome
